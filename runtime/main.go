@@ -638,6 +638,9 @@ func modifySpecFile(path string) error {
 		if err = addDevice(&spec); err != nil {
 			return fmt.Errorf("failed to add device to env: %v", err)
 		}
+		if err = addLDEnv(&spec); err != nil {
+			return fmt.Errorf("failed to add LD_LIBRARY_PATH to env: %v", err)
+		}
 	}
 
 	addEnvToDevicePlugin(&spec)
@@ -651,6 +654,25 @@ func modifySpecFile(path string) error {
 		return fmt.Errorf("failed to write OCI spec file: %v", err)
 	}
 
+	return nil
+}
+
+func addLDEnv(spec *specs.Spec) error {
+	ldEnvKey := "LD_LIBRARY_PATH"
+	ldEnvValue := "/usr/local/Ascend/driver/lib64/common:/usr/local/Ascend/driver/lib64/driver"
+	for _, val := range spec.Process.Env {
+		kv := strings.Split(val, "=")
+		if len(kv) != envLength {
+			continue
+		}
+		k, v := kv[0], kv[1]
+		if k != ldEnvKey {
+			continue
+		}
+		spec.Process.Env = append(spec.Process.Env, ldEnvKey+"="+v+":"+ldEnvValue)
+		return nil
+	}
+	spec.Process.Env = append(spec.Process.Env, ldEnvKey+"="+ldEnvValue)
 	return nil
 }
 
